@@ -2,4 +2,4 @@
 *.pyc
 
 videos/*
-resources/calibration_images/*
+src/resources/calibration_images/*
