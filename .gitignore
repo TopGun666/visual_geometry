@@ -1,0 +1,5 @@
+.DS_Store
+*.pyc
+
+videos/*
+resources/calibration_images/*
