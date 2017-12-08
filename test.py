@@ -25,7 +25,7 @@ camera = Camera()
 camera.compute_camera_extrinsic(img1, img2)
 
 
-def generate_cube(scale=1):
+def generate_cube(scale=1, shifting=[0, 0, 0]):
     """ Generates cube in homogenious coordinates """
 
     world_coords = [
@@ -33,9 +33,12 @@ def generate_cube(scale=1):
         [-1, -1, 1], [1, -1, 1 ], [1, 1, 1], [-1, 1, 1]
     ]
 
+    
+
     res = []
     for point in world_coords:
-        scaled = [axis * scale for axis in point]
+        shifted = [a+b for a, b in zip(point, shifting)]
+        scaled = [axis * scale for axis in shifted]
         scaled.append(1)
         res.append(np.array(scaled))
 
@@ -43,11 +46,14 @@ def generate_cube(scale=1):
 
 
 
-for point in generate_cube(0.1):
+for point in generate_cube(0.03, [10, 5, 0]):
     x, y, _ = initial_camera.project(point)
-    #x2, y2, _ = camera.project(point)
-    cv2.circle(img1, (int(x + img1.shape[0]/2), int(y  + img1.shape[1] / 2)), 5, (255, 0, 0), thickness=2, lineType=8, shift=0)
-    #cv2.circle(img2, (int(x2 + img2.shape[0]/2), int(y2  + img2.shape[1] / 2)), 5, (255, 0, 0), thickness=2, lineType=8, shift=0)
+    x2, y2, _ = camera.project(point)
+    cv2.circle(img1, (int(x), int(y)), 3, (255, 0, 0), thickness=2, lineType=8, shift=0)
+    cv2.circle(img2, (int(x2), int(y2)), 3, (255, 0, 0), thickness=2, lineType=8, shift=0)
+
+    print("1>>>", x, y)
+    print("2>>>", x2, y2)
 
 
 while True:
