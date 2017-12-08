@@ -2,10 +2,11 @@ import cv2
 import numpy as np
 
 class Camera(object):
-    __CALIBRATED_CAMERA_MATRIX_PATH = "src/resources/dumps/camera_matrix.npy"
-    __DISTANCE = 80
-
     """ Camera """
+
+    __CALIBRATED_CAMERA_MATRIX_PATH = "src/resources/camera_matrix.npy"
+    __DISTANCE = 60
+
     def __init__(self):
         self.t = [] # translation matrix
         self.R = [] # roatation matrix
@@ -18,13 +19,16 @@ class Camera(object):
 
     def project(self, obj):
         """ project 3d object into image coordinates """
-        raise NotImplementedError
+        R_t = np.hstack((self.R, self.t))
+        projection_matrix = np.dot(self.K, R_t) 
+
+        return np.dot(projection_matrix, obj)
 
     def __calibrate_camera(self):
         """ Loads previously saved calibration matrix from file """
         self.K = np.load(self.__CALIBRATED_CAMERA_MATRIX_PATH)
 
-    def compute_fundamential_matrix(self, image1, image2):
+    def compute_camera_extrinsic(self, image1, image2):
         orb = cv2.ORB_create()
 
         # get key points and descriptors
@@ -48,6 +52,12 @@ class Camera(object):
 
         # caluclate fundamential matrix
         F, mask = cv2.findFundamentalMat(pts1, pts2, cv2.FM_LMEDS)
+        E, mask = cv2.findEssentialMat(pts1, pts2, focal=1.0, pp=(0., 0.), method=cv2.RANSAC, prob=0.999, threshold=3.0)
+        points, R, t, mask = cv2.recoverPose(E, pts1, pts2)
 
+        self.E = E
         self.F = F
-        return F
+        self.R = R
+        self.t = t
+
+        return E, F, R, t
