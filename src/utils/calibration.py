@@ -6,7 +6,7 @@ import cv2
 import glob
 import numpy as np
 
-def get_images(path = "resources/calibration_images/"):
+def get_images(path = "src/resources/calibration_images/"):
     pattern = path + "**.png"
 
     images = []
@@ -28,6 +28,8 @@ def get_and_save_calibrated_matrix():
     objp = np.zeros((6*9,3), np.float32)
     objp[:,:2] = np.mgrid[0:9,0:6].T.reshape(-1,2)
 
+    objp = objp * 0.013 # 0.013 size of checkerboard cell
+
     # arrays for 3d space points & image points
     objpoints = []
     imgpoints = []
@@ -47,10 +49,10 @@ def get_and_save_calibrated_matrix():
 
     print("CALIBRATED MATRIX\n", mtx)
 
-    np.save("resources/camera_matrix", mtx)
-    np.save("resources/distortion", dist)
-    np.save("resources/rvecs", rvecs)
-    np.save("resources/tvecs", tvecs)  
+    np.save("src/resources/new_dumps/camera_matrix", mtx)
+    np.save("src/resources/new_dumps/distortion", dist)
+    np.save("src/resources/new_dumps/rvecs", rvecs)
+    np.save("src/resources/new_dumps/tvecs", tvecs)  
 
     cv2.destroyAllWindows()
     
