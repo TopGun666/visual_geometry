@@ -69,4 +69,12 @@ from src.main.timeline import Timeline
 # cv2.destroyAllWindows()
 
 timeline = Timeline("videos/video.mp4")
-timeline.construct_keyframes()
+timeline.compute_keyframe_triples()
+first_triple = timeline.keyframe_triples[0]
+
+first_triple.initial_stereo_reconstruction(timeline.K)
+
+first_triple.recover_third(timeline.K, timeline.distortion)
+
+
+print(first_triple.f3.R)

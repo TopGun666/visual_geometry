@@ -6,6 +6,10 @@ from src.main.triples import KeyFrame, KeyFrameTriple
 class Timeline(object):
     __MATCHES_THRESHOLD = 200
     __MAX_VIEW_THRESHOLD = 100
+    __SCALE_REATIO = 2
+
+    __CALIBRATED_CAMERA_MATRIX_PATH = "src/resources/new_dumps/camera_matrix.npy"
+    __DISTORTION_COEF_PATH = "src/resources/new_dumps/distortion.npy"
 
     def __init__(self, path):
         """ Contructor
@@ -14,7 +18,18 @@ class Timeline(object):
             path (str): path to videofile 
         """
         self.video_file_path = path
-        self.ratio = 2
+        self.keyframe_triples = [] # keyframe triples of video
+        self.buffer = [] # video buffer
+
+        # calibrate camera
+        self.K = [] # calibration matrix
+        self.distortion = [] # distortion coefficents
+        self.__calibrate_camera()
+
+    def __calibrate_camera(self):
+        """ Loads previously saved calibration matrix from file """
+        self.distortion = np.load(self.__DISTORTION_COEF_PATH)
+        self.K = np.load(self.__CALIBRATED_CAMERA_MATRIX_PATH)
 
     def __resize(self, frame):
         """ Resizes frame by ratio & returns new frame and grayscale image
@@ -27,8 +42,8 @@ class Timeline(object):
             gray: resized grayscale image
         """
         height, width, layers =  frame.shape
-        frame = cv2.resize(frame, (int(width/self.ratio), int(height/self.ratio))) 
-        gray = cv2.cvtColor(frame,cv2.COLOR_BGR2GRAY)
+        frame = cv2.resize(frame, (int(width/self.__SCALE_REATIO), int(height/self.__SCALE_REATIO))) 
+        gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
         gray = np.float32(gray)
 
         return frame, gray
@@ -62,15 +77,16 @@ class Timeline(object):
 
         return frames, grayscale_frames
 
-
-    def construct_keyframes(self):
-        """ Run video sequence and construct keyframes """
+    def compute_keyframe_triples(self):
+        """ Run video sequence and construct keyframe triples """
         cap = cv2.VideoCapture(self.video_file_path)
 
         print("Start reading video into buffer...")
         frames, grayscale_frames = self.__read_video_in_buffer(self.video_file_path)
+        self.buffer = frames
         print("Video buffered...")
 
+        print("Triple computing start...")
         orb = cv2.ORB_create()
         bf = cv2.BFMatcher(cv2.NORM_HAMMING, crossCheck=True)
 
@@ -96,11 +112,11 @@ class Timeline(object):
                 f2 = frames[f2_index]
                 f3 = frame
 
-                kf1 = KeyFrame(f1)
-                kf2 = KeyFrame(f2)
-                kf3 = KeyFrame(f3)
+                kf1 = KeyFrame(f1, ftkf_index)
+                kf2 = KeyFrame(f2, f2_index)
+                kf3 = KeyFrame(f3, counter)
 
-                triple = KeyFrameTriple(kf1, kf2, kf3, [])
+                triple = KeyFrameTriple(kf1, kf2, kf3, matches)
 
                 triples.append(triple)
                     
@@ -108,72 +124,12 @@ class Timeline(object):
                 ftkf_index = f2_index
                 view_counter = 0
 
-            print(len(matches), ftkf_index, counter, view_counter, len(triples))
-
 
             # increment counters
             view_counter += 1
             counter += 1
 
+        print("Triples computed...")
+        self.keyframe_triples = triples
 
-        # while(cap.isOpened()):
-        #     ret, frame = cap.read()    
-        #     if ret == True:
-        #         # preprocess image
-        #         frame, gray = self.__resize(frame)
-        #         if ftkf is None: 
-        #             ftkf = frame
-        #             ftkf_index = counter
-        #             continue
-
-        #         # compute matches
-        #         kp1, des1 = orb.detectAndCompute(ftkf, None)
-        #         kp2, des2 = orb.detectAndCompute(frame, None)
-
-        #         matches = bf.match(des1,des2)
-        #         matches = sorted(matches, key = lambda x: x.distance)
-        #         good = matches[:int(len(matches) * 0.1)]
-
-        #         # if to small matches found break and save kf triple
-        #         if len(matches) < self.__MATCHES_THRESHOLD or view_counter > self.__MAX_VIEW_THRESHOLD:
-        #             f1 = ftkf
-        #             f2_index = counter - int(view_counter/2)
-        #             f2 = frames[f2_index]
-        #             f3 = frame
-
-        #             kf1 = KeyFrame(f1)
-        #             kf2 = KeyFrame(f2)
-        #             kf3 = KeyFrame(f3)
-
-        #             triple = KeyFrameTriple(kf1, kf2, kf3, [])
-
-        #             triples.append(triple)
-                    
-        #             ftkf = frames[-1]
-        #             ftkf_index = f2_index
-        #             view_counter = 0
-
-        #         print(len(matches), ftkf_index, counter, view_counter, len(triples))
-
-
-
-
-        #         # cv2.imshow('image', frame)
-        #         # cv2.waitKey(1)
-
-        #         # add frame to buffer
-        #         frames.append(frame)
-
-        #     else:
-        #         cap.release()
-
-        #     view_counter += 1
-        #     counter += 1
-
-        # cv2.destroyAllWindows() 
-
-        
-
-
-
-    
+        return triples

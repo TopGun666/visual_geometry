@@ -23,6 +23,8 @@ class Camera(object):
         
         self.__calibrate_camera()
 
+        self.triangulation = []
+
     def project(self, obj):
         """ project 3d object into image coordinates """
         #R_t = np.hstack((self.R, self.t))
@@ -42,52 +44,54 @@ class Camera(object):
         self.K = np.load(self.__CALIBRATED_CAMERA_MATRIX_PATH)
 
     def compute_camera_extrinsic(self, image1, image2):
-        orb = cv2.ORB_create()
+        # orb = cv2.ORB_create()
 
-        # get key points and descriptors
-        kp1, des1 = orb.detectAndCompute(image1, None)
-        kp2, des2 = orb.detectAndCompute(image2, None)
+        # # get key points and descriptors
+        # kp1, des1 = orb.detectAndCompute(image1, None)
+        # kp2, des2 = orb.detectAndCompute(image2, None)
 
-        bf = cv2.BFMatcher(cv2.NORM_HAMMING, crossCheck=True)
-        matches = bf.match(des1,des2)
-        matches = sorted(matches, key = lambda x: x.distance)
-        good = matches[:int(len(matches) * 0.1)]
+        # bf = cv2.BFMatcher(cv2.NORM_HAMMING, crossCheck=True)
+        # matches = bf.match(des1,des2)
+        # matches = sorted(matches, key = lambda x: x.distance)
+        # good = matches[:int(len(matches) * 0.1)]
 
-        # select apropriate matches
-        pts1 = []
-        pts2 = []
-        for m in matches[:int(len(matches) * 0.2)]:
-            #if m.distance < self.__DISTANCE:
-            pts2.append(kp2[m.trainIdx].pt)
-            pts1.append(kp1[m.queryIdx].pt)
-        pts1 = np.int32(pts1)
-        pts2 = np.int32(pts2)
-
-        # sift = cv2.xfeatures2d.SIFT_create()
-
-        # kp1, des1 = sift.detectAndCompute(image1,None)
-        # kp2, des2 = sift.detectAndCompute(image2,None)
-
-        # FLANN_INDEX_KDTREE = 0
-        # index_params = dict(algorithm = FLANN_INDEX_KDTREE, trees = 5)
-        # search_params = dict(checks=50)
-
-        # flann = cv2.FlannBasedMatcher(index_params,search_params)
-        # matches = flann.knnMatch(des1,des2,k=2)
-
-        # good = []
+        # # select apropriate matches
         # pts1 = []
         # pts2 = []
-
-        # for i,(m,n) in enumerate(matches):
-        #     if m.distance < 0.6*n.distance:
-        #         good.append(m)
-        #         pts2.append(kp2[m.trainIdx].pt)
-        #         pts1.append(kp1[m.queryIdx].pt)
-
+        # for m in matches[:10]:
+        #     #if m.distance < self.__DISTANCE:
+        #     pts2.append(kp2[m.trainIdx].pt)
+        #     pts1.append(kp1[m.queryIdx].pt)
         # pts1 = np.int32(pts1)
         # pts2 = np.int32(pts2)
 
+        sift = cv2.xfeatures2d.SIFT_create()
+
+        # find the keypoints and descriptors with SIFT
+        kp1, des1 = sift.detectAndCompute(image1,None)
+        kp2, des2 = sift.detectAndCompute(image2,None)
+
+        FLANN_INDEX_KDTREE = 0
+        index_params = dict(algorithm = FLANN_INDEX_KDTREE, trees = 5)
+        search_params = dict(checks = 50)
+
+        flann = cv2.FlannBasedMatcher(index_params, search_params)
+
+        matches = flann.knnMatch(des1,des2,k=2)
+
+        # store all the good matches as per Lowe's ratio test.
+        good = []
+        for m,n in matches:
+            if m.distance < 0.7*n.distance:
+                good.append(m)
+
+        good = good[:100]
+
+
+        pts1 = np.float64([ kp1[m.queryIdx].pt for m in good ]).reshape(-1,1,2)
+        pts2 = np.float64([ kp2[m.trainIdx].pt for m in good ]).reshape(-1,1,2)
+
+    
         # caluclate fundamential matrix
         F, mask = cv2.findFundamentalMat(pts1, pts2, cv2.FM_LMEDS)
         E, mask = cv2.findEssentialMat(pts1, pts2, focal=1.0, pp=(486., 265.), method=cv2.RANSAC, prob=0.999, threshold=1.0)
@@ -112,28 +116,20 @@ class Camera(object):
         # img3 = cv2.drawMatches(image1,kp1,image2,kp2, good, None, flags=2)
         # cv2.imshow("asdasd", img3)
 
-        #print(self.K)
-
+        
         # homograpy
         M_r = np.hstack((self.R, self.t))
         M_l = np.hstack((np.eye(3, 3), np.zeros((3, 1))))
 
         P_l = np.dot(self.K,  M_l)
         P_r = np.dot(self.K,  M_r)
-        point_4d_hom = cv2.triangulatePoints(P_l, P_r, np.expand_dims(pts1, axis=1), np.expand_dims(pts2, axis=1))
+        point_4d_hom = cv2.triangulatePoints(P_l, P_r, pts1, pts2)
         point_4d = point_4d_hom / np.tile(point_4d_hom[-1, :], (4, 1))
         point_3d = point_4d[:3, :].T
 
-        # fig = plt.figure()
-        # ax = fig.add_subplot(111, projection='3d')
 
-        # for p in point_3d:
-        #     ax.scatter(p[0], p[1], p[2], c='b', marker='^')
+        self.triangulation = point_3d
 
-        # plt.show()
-
-
-        print(point_3d)
-
+        
         return E, F, R, t
 
