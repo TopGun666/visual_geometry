@@ -1,6 +1,9 @@
 import cv2
 import numpy as np
 
+from mpl_toolkits.mplot3d import Axes3D
+import matplotlib.pyplot as plt
+
 class Camera(object):
     """ Camera """
 
@@ -53,7 +56,7 @@ class Camera(object):
         # select apropriate matches
         pts1 = []
         pts2 = []
-        for m in matches[:int(len(matches) * 0.1)]:
+        for m in matches[:int(len(matches) * 0.2)]:
             #if m.distance < self.__DISTANCE:
             pts2.append(kp2[m.trainIdx].pt)
             pts1.append(kp1[m.queryIdx].pt)
@@ -111,4 +114,26 @@ class Camera(object):
 
         #print(self.K)
 
+        # homograpy
+        M_r = np.hstack((self.R, self.t))
+        M_l = np.hstack((np.eye(3, 3), np.zeros((3, 1))))
+
+        P_l = np.dot(self.K,  M_l)
+        P_r = np.dot(self.K,  M_r)
+        point_4d_hom = cv2.triangulatePoints(P_l, P_r, np.expand_dims(pts1, axis=1), np.expand_dims(pts2, axis=1))
+        point_4d = point_4d_hom / np.tile(point_4d_hom[-1, :], (4, 1))
+        point_3d = point_4d[:3, :].T
+
+        # fig = plt.figure()
+        # ax = fig.add_subplot(111, projection='3d')
+
+        # for p in point_3d:
+        #     ax.scatter(p[0], p[1], p[2], c='b', marker='^')
+
+        # plt.show()
+
+
+        print(point_3d)
+
         return E, F, R, t
+

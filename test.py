@@ -1,9 +1,11 @@
 import cv2
+cv2.ocl.setUseOpenCL(False)
+
 import numpy as np
 
 from src.camera import Camera
 
-cv2.ocl.setUseOpenCL(False)
+
 
 img1 = cv2.imread("img10.png")
 img2 = cv2.imread("img20.png")
@@ -57,7 +59,6 @@ cube = generate_cube(1.0, [0,0,10])
 image_points = initial_camera.project(cube)
 image_points2 = camera.project(cube)
 
-print(image_points2)
 for point in image_points2:
     x, y = point[0]
     cv2.circle(img2, (int(x), int(y)), 3, (255, 0, 0), thickness=2, lineType=8, shift=0)
