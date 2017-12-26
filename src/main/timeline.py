@@ -2,6 +2,7 @@ import cv2
 import numpy as np
 
 from src.main.triples import KeyFrame, KeyFrameTriple
+from src.camera import Camera
 
 class Timeline(object):
     __MATCHES_THRESHOLD = 200
@@ -79,7 +80,9 @@ class Timeline(object):
         return frames, grayscale_frames
 
     def compute_keyframe_triples(self):
-        """ Run video sequence and construct keyframe triples """
+        """ Run video sequence and construct keyframe triples 
+        TODO: put last frame in triples
+        """
         cap = cv2.VideoCapture(self.video_file_path)
 
         print("Start reading video into buffer...")
@@ -138,7 +141,32 @@ class Timeline(object):
     def recover_keyframes_cameras(self):
         if len(self.keyframe_triples) == 0: raise Exception("No keyframes triples in timeline. Maybe you made something wrong...")
 
-        recovered_triples = [kft.recover_cameras() for kft in self.keyframe_triples]
+        #recovered_triples = [kft.recover_cameras() for kft in self.keyframe_triples]
+
+        initial_triple = self.keyframe_triples[0]
+
+        kf1, kf2, kf3 = initial_triple.recover_cameras()
+        cameras = [
+            Camera.create(kf1.R, kf1.t),
+            Camera.create(kf2.R, kf2.t),
+            Camera.create(kf3.R, kf3.t)
+        ]
+
+        frames = [
+            kf1.frame, kf2.frame, kf3.frame
+        ]
+
+        prev1, prev2 = kf2, kf3
+        for triple in self.keyframe_triples[:1]:
+            triple.f1 = prev1
+            triple.f2 = prev2
+
+            _, prev1, prev2 = triple.recover_cameras()
+            cameras.append(Camera.create(prev2.R, prev2.t))
+            frames.append(prev2.frame)
+
+        return cameras, frames
+
         
         
             
