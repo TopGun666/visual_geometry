@@ -20,6 +20,7 @@ class Timeline(object):
         self.video_file_path = path
         self.keyframe_triples = [] # keyframe triples of video
         self.buffer = [] # video buffer
+        self.cameras = [] # cameras from recovered triples
 
         # calibrate camera
         self.K = [] # calibration matrix
@@ -112,11 +113,11 @@ class Timeline(object):
                 f2 = frames[f2_index]
                 f3 = frame
 
-                kf1 = KeyFrame(f1, ftkf_index)
-                kf2 = KeyFrame(f2, f2_index)
-                kf3 = KeyFrame(f3, counter)
+                kf1 = KeyFrame(f1)
+                kf2 = KeyFrame(f2)
+                kf3 = KeyFrame(f3)
 
-                triple = KeyFrameTriple(kf1, kf2, kf3, matches)
+                triple = KeyFrameTriple(kf1, kf2, kf3)
 
                 triples.append(triple)
                     
@@ -133,3 +134,13 @@ class Timeline(object):
         self.keyframe_triples = triples
 
         return triples
+
+    def recover_keyframes_cameras(self):
+        if len(self.keyframe_triples) == 0: raise Exception("No keyframes triples in timeline. Maybe you made something wrong...")
+
+        recovered_triples = [kft.recover_cameras() for kft in self.keyframe_triples]
+        
+        
+            
+
+

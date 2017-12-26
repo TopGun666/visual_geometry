@@ -43,6 +43,16 @@ class Camera(object):
         self.distortion = np.load(self.__DISTORTION_COEF_PATH)
         self.K = np.load(self.__CALIBRATED_CAMERA_MATRIX_PATH)
 
+
+    @staticmethod
+    def create(cls, R, t):
+        camera = cls()
+        camera.R = R
+        camera.t = t
+        return camera
+
+
+
     def compute_camera_extrinsic(self, image1, image2):
         # orb = cv2.ORB_create()
 
