@@ -5,7 +5,7 @@ from src.main.triples import KeyFrame, KeyFrameTriple
 
 class Timeline(object):
     __MATCHES_THRESHOLD = 200
-    __MAX_VIEW_THRESHOLD = 100
+    __MAX_VIEW_THRESHOLD = 80
     __SCALE_REATIO = 2
 
     __CALIBRATED_CAMERA_MATRIX_PATH = "src/resources/new_dumps/camera_matrix.npy"

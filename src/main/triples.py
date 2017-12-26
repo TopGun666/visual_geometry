@@ -16,6 +16,9 @@ class KeyFrame(object):
         self.R = None
         self.t = None
 
+    def __str__(self):
+        return "<Keyframe \nR: {} \nt: {} \n>\n".format(self.R, self.t)
+
 class KeyFrameTriple(object):
     """ Object for keyframe triples logic """
     

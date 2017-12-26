@@ -44,7 +44,7 @@ class Camera(object):
         self.K = np.load(self.__CALIBRATED_CAMERA_MATRIX_PATH)
 
 
-    @staticmethod
+    @classmethod
     def create(cls, R, t):
         camera = cls()
         camera.R = R
