@@ -2,6 +2,7 @@ import cv2
 import numpy as np
 
 from src.main.triples import KeyFrame, KeyFrameTriple
+from src.main.frame import Frame
 from src.camera import Camera
 
 class Timeline(object):
@@ -27,6 +28,9 @@ class Timeline(object):
         self.K = [] # calibration matrix
         self.distortion = [] # distortion coefficents
         self.__calibrate_camera()
+
+        self.keyframes = []
+        self.video_frames = []
 
     def __calibrate_camera(self):
         """ Loads previously saved calibration matrix from file """
@@ -116,9 +120,9 @@ class Timeline(object):
                 f2 = frames[f2_index]
                 f3 = frame
 
-                kf1 = KeyFrame(f1)
-                kf2 = KeyFrame(f2)
-                kf3 = KeyFrame(f3)
+                kf1 = KeyFrame(f1, ftkf_index)
+                kf2 = KeyFrame(f2, f2_index)
+                kf3 = KeyFrame(f3, counter)
 
                 triple = KeyFrameTriple(kf1, kf2, kf3)
 
@@ -138,7 +142,7 @@ class Timeline(object):
 
         return triples
 
-    def recover_keyframes_cameras(self):
+    def recover_keyframes(self):
         if len(self.keyframe_triples) == 0: raise Exception("No keyframes triples in timeline. Maybe you made something wrong...")
 
         #recovered_triples = [kft.recover_cameras() for kft in self.keyframe_triples]
@@ -153,7 +157,7 @@ class Timeline(object):
         ]
 
         frames = [
-            kf1.frame, kf2.frame, kf3.frame
+            kf1, kf2, kf3
         ]
 
         prev1, prev2 = kf2, kf3
@@ -163,9 +167,38 @@ class Timeline(object):
 
             _, prev1, prev2 = triple.recover_cameras()
             cameras.append(Camera.create(prev2.R, prev2.t))
-            frames.append(prev2.frame)
+            frames.append(prev2)
+
+        self.keyframes = frames
 
         return cameras, frames
+
+
+    def fill_intermediate_frames(self):
+        print("Optimizing intermediate frames...")
+
+        video_frames = []
+        for frame_pair in zip(self.keyframes, self.keyframes[1:]):
+            head, tail = frame_pair[0], frame_pair[1]
+            for i in range(head.index, tail.index):
+                frame = Frame(self.buffer[i])
+                frame.interval_descriptors = head.descriptors
+                frame.interval_keypoints = head.keypoints
+                frame.points_3d = head.points_3d
+                video_frames.append(frame)
+
+        optimized_vf = [f.optimize() for f in video_frames]
+        print("Intermediate frames optimized...")
+
+        self.video_frames = optimized_vf
+
+
+        
+
+
+                
+
+                
 
         
         

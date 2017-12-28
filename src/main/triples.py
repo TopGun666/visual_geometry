@@ -2,22 +2,28 @@ import cv2
 import numpy as np
 
 from src.camera import Camera
+from src.main.frame import Frame
 
 class KeyFrame(object):
     """ Object for keyframe parameters """
 
-    def __init__(self, frame):
+    def __init__(self, frame, index):
         """ Constructor
         
         Args:
             frame: 2d numpy matrix with image
         """
         self.frame = frame
+        self.index = index
         self.R = []
         self.t = []
 
+        self.points_3d = None
+        self.descriptors = None
+        self.keypoints = None
+
     def __str__(self):
-        return "<Keyframe \nR: {} \nt: {} \n>\n".format(self.R, self.t)
+        return "<Keyframe\nindex:{}\nR:{}\nt:{}\n>\n".format(self.index, self.R, self.t)
 
 class KeyFrameTriple(object):
     """ Object for keyframe triples logic """
@@ -131,6 +137,18 @@ class KeyFrameTriple(object):
         self.f3.R = cv2.Rodrigues(rvecs)[0]
         self.f3.t = tvecs
 
+        
+        
+        self.f1.points_3d = point_3d
+        self.f2.points_3d = point_3d
+        self.f3.points_3d = point_3d
+        self.reconstruction_3d = point_3d
+
+        # get good descriptors and kp in all three points
+        self.f1.descriptors, self.f1.keypoints = np.array([ des1[index] for index in indexes1 ]), np.array([ kp1[index] for index in indexes1 ])
+        self.f2.descriptors, self.f2.keypoints = np.array([ des2[index] for index in indexes2 ]), np.array([ kp2[index] for index in indexes2 ])
+        self.f3.descriptors, self.f3.keypoints = np.array([ des3[index] for index in indexes3 ]), np.array([ kp3[index] for index in indexes3 ])
+
         print("Initial stereo reconstruction finished...")
         return self.f1, self.f2, self.f3
 
@@ -205,6 +223,16 @@ class KeyFrameTriple(object):
 
         self.f3.R = cv2.Rodrigues(rvecs)[0]
         self.f3.t = tvecs
+
+        self.f1.points_3d = point_3d
+        self.f2.points_3d = point_3d
+        self.f3.points_3d = point_3d
+        self.reconstruction_3d = point_3d
+
+        # get good descriptors and kp in all three points
+        self.f1.descriptors, self.f1.keypoints = np.array([ des1[index] for index in indexes1 ]), np.array([ kp1[index] for index in indexes1 ])
+        self.f2.descriptors, self.f2.keypoints = np.array([ des2[index] for index in indexes2 ]), np.array([ kp2[index] for index in indexes2 ])
+        self.f3.descriptors, self.f3.keypoints = np.array([ des3[index] for index in indexes3 ]), np.array([ kp3[index] for index in indexes3 ])
 
         print("Stereo reconstruction finished...")
         return self.f1, self.f2, self.f3
