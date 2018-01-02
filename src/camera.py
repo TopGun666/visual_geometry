@@ -26,14 +26,14 @@ class Camera(object):
         self.triangulation = []
 
     def get_projection_matrix(self):
-        P = np.empty((3, 4))
-        P[:, :3] = np.dot(self.K, self.R)
-        P[:, 3] = np.dot(self.K, self.t)
-        return P
-
-        # M_r = np.hstack((self.R, self.t))
-        # P = np.dot(self.K,  M_r)
+        # P = np.empty((3, 4))
+        # P[:, :3] = np.dot(self.K, self.R)
+        # P[:, 3] = np.dot(self.K, self.t)
         # return P
+
+        M_r = np.hstack((self.R, self.t))
+        P = np.dot(self.K,  M_r)
+        return P
 
     def project(self, obj):
         """ project 3d object into image coordinates """

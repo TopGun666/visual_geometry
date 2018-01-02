@@ -201,6 +201,8 @@ class SceneReconstruction3D:
         # convert from homogeneous coordinates to 3D
         pts3D = pts4D[:, :3]/np.repeat(pts4D[:, 3], 3).reshape(-1, 3)
 
+        self.pts3D = pts3D
+
         # plot with matplotlib
         Ys = pts3D[:, 0]
         Zs = pts3D[:, 1]
@@ -214,6 +216,7 @@ class SceneReconstruction3D:
         ax.set_zlabel('X')
         plt.title('3D point cloud: Use pan axes button below to inspect')
         plt.show()
+
 
     def _extract_keypoints(self, feat_mode):
         """Extracts keypoints
@@ -240,7 +243,7 @@ class SceneReconstruction3D:
     def _extract_keypoints_surf(self):
         """Extracts keypoints via SURF descriptors"""
         # extract keypoints and descriptors from both images
-        detector = cv2.SURF(250)
+        detector = cv2.xfeatures2d.SIFT_create()
         first_key_points, first_desc = detector.detectAndCompute(self.img1,
                                                                  None)
         second_key_points, second_desc = detector.detectAndCompute(self.img2,
