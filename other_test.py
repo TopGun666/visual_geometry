@@ -76,9 +76,10 @@ pts1 =  np.float64([ kp1[index].pt for index in indexes1 ]).reshape(-1,1,2)
 pts2 =  np.float64([ kp2[index].pt for index in indexes2 ]).reshape(-1,1,2)
 pts3 =  np.float64([ kp3[index].pt for index in indexes3 ]).reshape(-1,1,2)
 
-
-F, mask = cv2.findFundamentalMat(pts1, pts2, cv2.FM_LMEDS)
-E, mask = cv2.findEssentialMat(pts1, pts2, focal=0.25, pp=(486., 265.), method=cv2.RANSAC, prob=0.999, threshold=1.0)
+c2 =Camera()
+F, mask = cv2.findFundamentalMat(pts1, pts2, cv2.FM_RANSAC)
+E = c2.K.T * F * c2.K
+#E, mask = cv2.findEssentialMat(pts1, pts2, focal=0.25, pp=(486., 265.), method=cv2.RANSAC, prob=0.999, threshold=1.0)
 points, R, t, mask = cv2.recoverPose(E, pts1, pts2, pp=(486., 265.))
 
 camera.R = R
@@ -96,7 +97,7 @@ point_3d = point_4d[:3, :].T
         
 
 
-ret, rvecs, tvecs = cv2.solvePnP(point_3d, pts3, camera.K, camera.distortion)
+_, rvecs, tvecs, _ = cv2.solvePnPRansac(point_3d, pts3, camera.K, camera.distortion)
 
 camera3.R = rvecs
 camera3.t = tvecs
