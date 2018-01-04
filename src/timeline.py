@@ -1,5 +1,5 @@
 import cv2
-
+import glob
 import numpy as np 
 import pandas as pd
 
@@ -30,6 +30,8 @@ class Timeline(object):
         self.adjusted_keyframes = []
         self.__recover_keyframes()
         self.__adjust_keyframes()
+
+        print("Timeline initialized...")
         
         
     def __resize(self, frame):
@@ -38,26 +40,38 @@ class Timeline(object):
         frame = cv2.resize(frame, (int(width/2), int(height/2)))
         return frame
         
-    def __read_into_buffer(self):
-        """ Reads video into object buffer """
-        cap = cv2.VideoCapture(self.path_video)
+    def __read_into_buffer(self, mode="pictures"):
+        """ Reads video/images into object buffer """
         buffer = []
-        original_images_buffer = []
-        while(cap.isOpened()):
-            ret, frame = cap.read()    
-            if ret == True:
-                frame = self.__resize(frame)
-                buffer.append(frame)
-                original_images_buffer.append(frame)
-            else:
-                cap.release()
+
+        print("Buffering: start...")
+        if mode == "pictures":
+            print("Reading from images sequence in frames folder...")
+            for path in glob.glob("frames/**.png"):
+                img = cv2.imread(path)
+                buffer.append(img)
+        else:
+            print("Reading from video file {}...".format(self.path_video))
+            cap = cv2.VideoCapture(self.path_video)
+            original_images_buffer = []
+            while(cap.isOpened()):
+                ret, frame = cap.read()    
+                if ret == True:
+                    frame = self.__resize(frame)
+                    buffer.append(frame)
+                    original_images_buffer.append(frame)
+                else:
+                    cap.release()
                 
         self.buffer = buffer
+        print("Buffering: done")
                 
     def __recover_keyframes(self):
-        """  """
+        """ Recover keyframes based on number of keyframe triple.
+        If first that recover via singular rotation matrix and calculating essential matrix
+        """
+        print("Keyframes recovering: start...")
         keyframes = []
-        
         frame1, frame2, frame3 = None, None, None
         
         for i, triple in enumerate(window(self.keyframes_indexes, 3)):
@@ -70,12 +84,15 @@ class Timeline(object):
                 keyframes = [frame1, frame2, frame3]
                 
         self.keyframes = keyframes
+        print("Keyframes recovering: done")
                 
     def __adjust_keyframes(self):
-        self.adjusted_keyframes = [frame.bundle_adjustment() for frame in self.keyframes]
-        
-    
+        print("Keyframe bundle adjustment: start...")
+        self.adjusted_keyframes = [frame.bundle_adjustment() for frame in self.keyframes[:]]
+        print("Keyframe bundle adjustment: done")
+
     def interpolate_frames_and_save(self):
+        print("Intermediate frames interpolation: start...")
         cube = generate_cube(1.0, [0,0,10])
         train = []
         for kf in self.adjusted_keyframes[:]:
@@ -92,19 +109,27 @@ class Timeline(object):
         X = np.array([x*self.KEYFRAME_DISTANCE for x in range(df.shape[0])]).reshape(df.shape[0], 1)
         y = df
         
+        print("Nnet training: start...")
         mlp = MLPRegressor(
             max_iter=2000,
             learning_rate_init=0.01,
             random_state=42
         )
         mlp.fit(X, y)
+        print("Nnet:", mlp)
+        print("Nnet training: done")
         
-        for i, image in enumerate(self.buffer):
+        print("Saving images: start...")
+        for i, image in enumerate(self.buffer[:120]):
             frame = Frame(image)
             res = mlp.predict(i)
             image = draw_cube(frame.image, res.reshape((-1, 1, 2)))
 
             cv2.imwrite("saved_images/{}.png".format("%03d" % i), image)
+        
+        print("Intermediate frames interpolation: done")
+        print("Saving images: done")
+        
             
         
         

@@ -6,10 +6,15 @@ from src.timeline import Timeline
 
 
 def show_saved_images():
-    for path in glob.glob("saved_images/**.png"):
-        img = cv2.imread(path)
-        cv2.imshow("frame", img)
-        cv2.waitKey(30)
+    files = glob.glob("saved_images/**.png")
+    if len(files) > 0:
+        for path in files:
+            img = cv2.imread(path)
+            cv2.imshow("frame", img)
+            cv2.waitKey(30)
+    else:
+        print("No images in saved_images folder to read. Starting from scratch...")
+        raw_start()
 
 def raw_start():
     print("Raw start...")
@@ -23,14 +28,14 @@ if __name__ == '__main__':
     )
     
     parser.add_argument(
-        '--read-cached',
+        '--raw-start',
         action='store_true',
-        help='reads images from precalculated results'
+        help='starts to recover 3d scene and injecting cube into video'
     )
     
     args = parser.parse_args()
 
-    if not args.read_cached:
+    if args.raw_start:
         raw_start()
     else:
         show_saved_images()
