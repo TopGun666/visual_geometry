@@ -12,7 +12,7 @@ from src.utils.reprojection import reprojection_distance
 
 class Frame(object):
     """ Frame object that stores all possible information needed """
-    MATCHER_THREHSOLD = 0.7
+    MATCHER_THREHSOLD = 0.55
     
     def __init__(self, image):
         self.image = np.copy(image)
@@ -45,7 +45,7 @@ class Frame(object):
         initial = [R[0], R[1], R[2], t[0], t[1], t[2]]
         initial = [x[0] for x in initial]
         
-        mon = VerboseMonitor(50)
+        mon = VerboseMonitor(100)
         result = diffev2(
             reprojection_distance, 
             x0=initial, 
@@ -55,7 +55,7 @@ class Frame(object):
             disp=False, 
             full_output=True, 
             itermon=mon, 
-            maxiter=500
+            maxiter=1000
         )
         
         result = result[0] #optimized.x

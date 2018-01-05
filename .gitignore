@@ -8,3 +8,4 @@ src/resources/calibration_images/*
 saved_images/*
 saved_images copy/*
 frames/*
+intermediate/*

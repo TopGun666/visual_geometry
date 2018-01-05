@@ -46,7 +46,7 @@ class Scene(object):
             undistorted_points_2
         )
         points_3d = cv2.convertPointsFromHomogeneous(points_3d_homog.T)
-        
+                
         _, rvecs, tvecs, inliers = cv2.solvePnPRansac(points_3d, pts3, Camera().K, Camera().distortion) 
         return cv2.Rodrigues(rvecs)[0], tvecs, points_3d
     

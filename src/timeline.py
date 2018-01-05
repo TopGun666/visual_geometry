@@ -14,7 +14,7 @@ from src.utils.functions import window
 class Timeline(object):
     """ Main class that stores video """
     RESIZE_SCALE = 2
-    KEYFRAME_DISTANCE = 30
+    KEYFRAME_DISTANCE = 50
     
     def __init__(self, path="videos/video13.mp4"):
         self.path_video = path # path to video
@@ -30,6 +30,7 @@ class Timeline(object):
         self.adjusted_keyframes = []
         self.__recover_keyframes()
         self.__adjust_keyframes()
+        self.interpolated_frames = []
 
         print("Timeline initialized...")
         
@@ -77,7 +78,7 @@ class Timeline(object):
         for i, triple in enumerate(window(self.keyframes_indexes, 3)):
             image1, image2, image3 = self.buffer[triple[0]], self.buffer[triple[1]], self.buffer[triple[2]]
             if i > 0:
-                frame1, frame2, frame3 = Scene.triangulation(frame2, frame3, image3)
+                frame1, frame2, frame3 = Scene.triangulation(frame1, frame3, image3)
                 keyframes.append(frame3)
             else: # if initial
                 frame1, frame2, frame3 = Scene.initial_triangulation(image1, image2, image3)
@@ -93,6 +94,34 @@ class Timeline(object):
 
     def interpolate_frames_and_save(self):
         print("Intermediate frames interpolation: start...")
+        print("WARNING: this operation take a lot of time... (over 20 minutes)")
+        cube = generate_cube(1.0, [0,0,10])
+        intermediate_frames = []
+        for i, (kf1, kf2, kf3) in enumerate(window(self.adjusted_keyframes, 3)):
+            print("Step", i)
+            if i == 0:
+                intermediate_images = self.buffer[i*self.KEYFRAME_DISTANCE:(i+2)*self.KEYFRAME_DISTANCE]
+            else:
+                intermediate_images = self.buffer[(i+1)*self.KEYFRAME_DISTANCE:(i+2)*self.KEYFRAME_DISTANCE]
+            for intermediate_image in intermediate_images:
+                intermediate_frame = Scene.triangulation(kf1, kf3, intermediate_image)[2]
+                intermediate_frames.append(intermediate_frame)
+                
+        adjusted_intermediate_frames = [f.bundle_adjustment() for f in intermediate_frames[:100]]
+        
+        for i, aiframe in enumerate(adjusted_intermediate_frames):
+            frame = Frame(aiframe.image)
+            try:
+                image = draw_cube(frame.image, aiframe.create_camera_and_project(cube), wide=2)
+                cv2.imwrite("saved_images/{}.png".format("%03d" % i), image)
+            except Exception as e:
+                print(e)
+        
+        self.interpolated_frames = adjusted_intermediate_frames
+        print("Intermediate frames interpolation: done")
+        
+    def interpolate_frames_by_network_and_save(self):
+        print("Intermediate frames interpolation by nnet: start...")
         cube = generate_cube(1.0, [0,0,10])
         train = []
         for kf in self.adjusted_keyframes[:]:
